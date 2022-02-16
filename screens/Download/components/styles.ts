@@ -7,11 +7,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 6,
     flexDirection: 'row',
+    marginHorizontal: 10,
   },
   image: {
     width: 100,
     height: 100,
-    borderWidth: 2,
     borderRadius: 10,
     resizeMode: 'cover',
     margin: 8,
@@ -28,13 +28,12 @@ const styles = StyleSheet.create({
   labelContainer: {
     marginTop: 16,
     borderRadius: 10,
-    backgroundColor: '#ff8137',
     padding: 5,
     alignItems: 'center',
     width: 100,
   },
   labelText: {
-    color: '#555555',
+    color: 'white',
   },
   progressBar: {
     marginTop: 20,

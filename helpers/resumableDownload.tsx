@@ -3,6 +3,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { Camera } from 'expo-camera';
 
 type Props = {
+  fileName: string;
   downloadUrl: string;
   downloadProgressCallback: (
     downloadProgress: FileSystem.DownloadProgressData
@@ -10,6 +11,7 @@ type Props = {
 };
 
 const downloadResumablePhoto = ({
+  fileName,
   downloadUrl,
   downloadProgressCallback,
 }: Props) => {
@@ -34,7 +36,7 @@ const downloadResumablePhoto = ({
 
   const downloadResumable = FileSystem.createDownloadResumable(
     downloadUrl,
-    FileSystem.documentDirectory + 'small.jpg',
+    FileSystem.documentDirectory + fileName + '.jpg',
     {},
     downloadProgressCallback
   );

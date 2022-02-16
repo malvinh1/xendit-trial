@@ -6,7 +6,7 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { Content, useDownloadContext } from '../../contexts/DownloadContext';
+import { Contents, useDownloadContext } from '../../contexts/DownloadContext';
 
 import { NavigationProp } from '../../types/navigation';
 
@@ -15,7 +15,7 @@ import styles from './styles';
 const Home = ({ navigation }: NavigationProp<'Home'>) => {
   const { downloading, setDownloading } = useDownloadContext();
 
-  const [photos, setPhotos] = useState<Content>([]);
+  const [photos, setPhotos] = useState<Contents>([]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -38,6 +38,7 @@ const Home = ({ navigation }: NavigationProp<'Home'>) => {
           url: item.urls.thumb,
           description: item.description || 'Winter in Portugal',
           downloadUrl: item.links.download,
+          downloadProgress: 0,
         }));
         setPhotos(unsplashImages);
       });

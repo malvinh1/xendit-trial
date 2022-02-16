@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState } from 'react';
 
-export type Content = Array<{
+export type Content = {
   id: string;
   url: string;
   description: string;
   downloadUrl: string;
-}>;
+  downloadProgress: number;
+};
+
+export type Contents = Array<Content>;
 
 type Context = {
-  downloading: Content;
-  setDownloading: (content: Content) => void;
+  downloading: Contents;
+  setDownloading: (content: Contents) => void;
 };
 
 const DownloadContext = createContext<Context>({
@@ -22,7 +25,7 @@ const useDownloadContext = () => {
 };
 
 const DownloadContextProvider: React.FC = ({ children }) => {
-  const [downloading, setDownloading] = useState<Content>([]);
+  const [downloading, setDownloading] = useState<Contents>([]);
 
   return (
     <DownloadContext.Provider value={{ downloading, setDownloading }}>

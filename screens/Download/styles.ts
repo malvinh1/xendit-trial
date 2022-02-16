@@ -5,14 +5,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  scrollViewContainer: {
-    paddingHorizontal: 10,
+  downloadContainer: {
     paddingTop: 10,
+    flex: 1,
   },
   heading: {
     fontSize: 16,
     fontWeight: '500',
     paddingVertical: 10,
+    marginLeft: 10,
+  },
+  flex: {
+    flex: 1,
   },
 });
 
