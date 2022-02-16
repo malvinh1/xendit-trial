@@ -58,7 +58,11 @@ const Home = ({ navigation }: NavigationProp<'Home'>) => {
           <TouchableOpacity
             key={`${item.id}-${index}`}
             style={styles.imageContainer}
-            onPress={() => setDownloading([...downloading, item])}
+            onPress={() => {
+              if (!downloading.includes(item)) {
+                setDownloading([...downloading, item]);
+              }
+            }}
           >
             <Image source={{ uri: item.url }} style={styles.image} />
           </TouchableOpacity>

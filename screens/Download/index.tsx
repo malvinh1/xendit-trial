@@ -11,6 +11,7 @@ import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
 } from 'react-native-draggable-flatlist';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Card from './components/Card';
 
@@ -19,22 +20,24 @@ import {
   useDownloadingContext,
   useDownloadingContextDispatch,
 } from '../../contexts/DownloadingContext';
-import { downloadResumablePhoto } from '../../helpers/resumableDownload';
-import { NavigationProp } from '../../types/navigation';
+import { ensureDirExists, saveFile } from '../../helpers/resumableDownload';
 
 import styles from './styles';
 import {
   useDownloadedContext,
   useDownloadedContextDispatch,
 } from '../../contexts/DownloadedContext';
+import useFirstRender from '../../helpers/useFirstRender';
 
-const Download = ({ route }: NavigationProp<'Download'>) => {
+const Download = () => {
   const { downloading } = useDownloadingContext();
   const { setDownloading } = useDownloadingContextDispatch();
   const { downloaded } = useDownloadedContext();
   const { setDownloaded } = useDownloadedContextDispatch();
+  const firstRender = useFirstRender();
 
   const [queueLength, setQueueLength] = useState(downloading.length - 6);
+  const [shouldPause, setShouldpause] = useState(false);
 
   const downloadProgressCallback = useCallback(
     (value: FileSystem.DownloadProgressData, index: number) => {
@@ -67,28 +70,68 @@ const Download = ({ route }: NavigationProp<'Download'>) => {
   );
 
   useEffect(() => {
-    downloading.map((item, index) => {
-      if (index <= 5) {
-        downloadResumablePhoto({
-          fileName: item.id,
-          downloadUrl: item.downloadUrl,
-          downloadProgressCallback: (value) =>
-            downloadProgressCallback(value, index),
-        });
+    downloading.map(async (item, index) => {
+      const downloadResumable = FileSystem.createDownloadResumable(
+        item.downloadUrl,
+        FileSystem.documentDirectory + item.id + '.jpg',
+        {},
+        (value) => downloadProgressCallback(value, index)
+      );
+
+      {
+        if (index <= 5 && item.downloadProgress === 0) {
+          try {
+            ensureDirExists();
+            const result = await downloadResumable.downloadAsync();
+            if (result) {
+              console.log('Finished downloading to ', result.uri);
+              saveFile(result.uri);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+
+          if (shouldPause && index === 5) {
+            try {
+              console.log('paused');
+              await downloadResumable.pauseAsync();
+              setShouldpause(false);
+              console.log(
+                'Paused download operation, saving for future retrieval'
+              );
+              AsyncStorage.setItem(
+                'pausedDownload',
+                JSON.stringify(downloadResumable.savable())
+              );
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
       }
     });
   }, []);
 
   useEffect(() => {
-    if (queueLength >= 0) {
-      downloading.map((item, index) => {
+    if (queueLength > 0 && !firstRender) {
+      downloading.map(async (item, index) => {
         if (item.downloadProgress === 0) {
-          downloadResumablePhoto({
-            fileName: item.id,
-            downloadUrl: item.downloadUrl,
-            downloadProgressCallback: (value) =>
-              downloadProgressCallback(value, index),
-          });
+          const downloadResumable = FileSystem.createDownloadResumable(
+            item.downloadUrl,
+            FileSystem.documentDirectory + item.id + '.jpg',
+            {},
+            (value) => downloadProgressCallback(value, index)
+          );
+          try {
+            ensureDirExists();
+            const result = await downloadResumable.downloadAsync();
+            if (result) {
+              console.log('Finished downloading to ', result.uri);
+              saveFile(result.uri);
+            }
+          } catch (e) {
+            console.error(e);
+          }
         }
       });
     }
@@ -100,7 +143,6 @@ const Download = ({ route }: NavigationProp<'Download'>) => {
     isActive,
     index = Number.MAX_SAFE_INTEGER,
   }: RenderItemParams<Content>) => {
-    console.log('re-render');
     return (
       <ScaleDecorator>
         <TouchableOpacity onLongPress={drag} disabled={isActive}>
@@ -140,7 +182,18 @@ const Download = ({ route }: NavigationProp<'Download'>) => {
           <DraggableFlatList
             containerStyle={styles.flex}
             data={downloading}
-            onDragEnd={({ data }) => setDownloading(data)}
+            onDragEnd={({ data }) => {
+              data.map((item, index) => {
+                const shouldPause =
+                  item.id !== downloading[index].id &&
+                  downloading.indexOf(item) > 5;
+                if (shouldPause) {
+                  console.log('called here');
+                  setShouldpause(true);
+                }
+                setDownloading(data);
+              });
+            }}
             keyExtractor={(item) => item.id || Math.random().toString()}
             renderItem={renderItem}
           />

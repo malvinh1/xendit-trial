@@ -10,49 +10,23 @@ type Props = {
   ) => void;
 };
 
-const downloadResumablePhoto = ({
-  fileName,
-  downloadUrl,
-  downloadProgressCallback,
-}: Props) => {
+const ensureDirExists = async () => {
   const downloadDirectory = FileSystem.cacheDirectory + 'xendit-trial/';
 
-  const ensureDirExists = async () => {
-    const dirInfo = await FileSystem.getInfoAsync(downloadDirectory);
-    if (!dirInfo.exists) {
-      console.log("Directory doesn't exist, creating...");
-      await FileSystem.makeDirectoryAsync(downloadDirectory, {
-        intermediates: true,
-      });
-    }
-  };
-
-  const saveFile = async (fileUri: string) => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    if (status === 'granted') {
-      await MediaLibrary.saveToLibraryAsync(fileUri);
-    }
-  };
-
-  const downloadResumable = FileSystem.createDownloadResumable(
-    downloadUrl,
-    FileSystem.documentDirectory + fileName + '.jpg',
-    {},
-    downloadProgressCallback
-  );
-
-  try {
-    ensureDirExists();
-
-    downloadResumable.downloadAsync().then((result) => {
-      if (result) {
-        console.log('Finished downloading to ', result.uri);
-        saveFile(result.uri);
-      }
+  const dirInfo = await FileSystem.getInfoAsync(downloadDirectory);
+  if (!dirInfo.exists) {
+    console.log("Directory doesn't exist, creating...");
+    await FileSystem.makeDirectoryAsync(downloadDirectory, {
+      intermediates: true,
     });
-  } catch (e) {
-    console.error(e);
   }
 };
 
-export { downloadResumablePhoto };
+const saveFile = async (fileUri: string) => {
+  const { status } = await Camera.requestCameraPermissionsAsync();
+  if (status === 'granted') {
+    await MediaLibrary.saveToLibraryAsync(fileUri);
+  }
+};
+
+export { ensureDirExists, saveFile };
