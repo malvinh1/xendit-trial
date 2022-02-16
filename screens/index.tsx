@@ -16,7 +16,6 @@ const RootStack = () => {
         component={Home}
         options={{
           headerTitle: 'Images',
-          headerRight: () => <Text onPress={() => {}}>TEST</Text>,
         }}
       />
       <Stack.Screen name="Download" component={Download} />
