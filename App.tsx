@@ -1,14 +1,17 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { DownloadContextProvider } from './contexts/DownloadContext';
+import { DownloadedContextProvider } from './contexts/DownloadedContext';
+import { DownloadingContextProvider } from './contexts/DownloadingContext';
 
 import RootStack from './screens';
 
 export default function App() {
   return (
-    <DownloadContextProvider>
-      <NavigationContainer>
-        <RootStack />
-      </NavigationContainer>
-    </DownloadContextProvider>
+    <DownloadingContextProvider>
+      <DownloadedContextProvider>
+        <NavigationContainer>
+          <RootStack />
+        </NavigationContainer>
+      </DownloadedContextProvider>
+    </DownloadingContextProvider>
   );
 }

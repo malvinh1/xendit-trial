@@ -6,14 +6,19 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { Contents, useDownloadContext } from '../../contexts/DownloadContext';
+import {
+  Contents,
+  useDownloadingContext,
+  useDownloadingContextDispatch,
+} from '../../contexts/DownloadingContext';
 
 import { NavigationProp } from '../../types/navigation';
 
 import styles from './styles';
 
 const Home = ({ navigation }: NavigationProp<'Home'>) => {
-  const { downloading, setDownloading } = useDownloadContext();
+  const { downloading } = useDownloadingContext();
+  const { setDownloading } = useDownloadingContextDispatch();
 
   const [photos, setPhotos] = useState<Contents>([]);
 
