@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 
-type Content = Array<{ id: string; url: string }>;
+type Content = Array<{ id: string; url: string; description: string }>;
 
 type Context = {
   downloading: Content;

@@ -15,7 +15,9 @@ import styles from './styles';
 const Home = ({ navigation }: NavigationProp<'Home'>) => {
   const { downloading, setDownloading } = useDownloadContext();
 
-  const [photos, setPhotos] = useState<Array<{ id: string; url: string }>>([]);
+  const [photos, setPhotos] = useState<
+    Array<{ id: string; url: string; description: string }>
+  >([]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -29,13 +31,14 @@ const Home = ({ navigation }: NavigationProp<'Home'>) => {
 
   useEffect(() => {
     fetch(
-      'https://api.unsplash.com/photos/?client_id=OGgW-yt6DR91IbY7pHO-EWY1F1j2BH0MdoCHeQGS_kI&per_page=18'
+      'https://api.unsplash.com/photos/?client_id=OGgW-yt6DR91IbY7pHO-EWY1F1j2BH0MdoCHeQGS_kI&per_page=18&order_by=popular'
     )
       .then((res) => res.json())
       .then((data: Array<any>) => {
         const unsplashImages = data.map((item) => ({
           id: item.id,
           url: item.urls.thumb,
+          description: item.description || 'Winter in Portugal',
         }));
         setPhotos(unsplashImages);
       });
