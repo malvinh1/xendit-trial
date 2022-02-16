@@ -7,9 +7,10 @@ import styles from './styles';
 type Props = {
   imageSrc: string;
   description: string;
+  progress: number;
 };
 
-const Card = ({ imageSrc, description }: Props) => {
+const Card = ({ imageSrc, description, progress }: Props) => {
   return (
     <View style={styles.container}>
       <Image source={{ uri: imageSrc }} style={styles.image} />
@@ -20,7 +21,7 @@ const Card = ({ imageSrc, description }: Props) => {
         </View>
         <ProgressBar
           style={styles.progressBar}
-          progress={0.5}
+          progress={progress}
           color={'#ff8137'}
         />
       </View>
