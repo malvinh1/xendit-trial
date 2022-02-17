@@ -1,6 +1,13 @@
 import React from 'react';
 import { View, Text, Image } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
+import {
+  Menu,
+  MenuOptions,
+  MenuOption,
+  MenuTrigger,
+} from 'react-native-popup-menu';
+import { Ionicons } from '@expo/vector-icons';
 
 import styles from './styles';
 
@@ -9,9 +16,18 @@ type Props = {
   description: string;
   progress: number;
   status: 'Downloading' | 'Pending' | 'Downloaded';
+  disabledDownload?: boolean;
+  onPressMenu?: () => void;
 };
 
-const Card = ({ imageSrc, description, progress, status }: Props) => {
+const Card = ({
+  imageSrc,
+  description,
+  progress,
+  status,
+  disabledDownload = true,
+  onPressMenu = () => {},
+}: Props) => {
   return (
     <View style={styles.container}>
       <Image source={{ uri: imageSrc }} style={styles.image} />
@@ -33,6 +49,23 @@ const Card = ({ imageSrc, description, progress, status }: Props) => {
           color={'#ff8137'}
         />
       </View>
+      <Menu
+        onSelect={(value) => {
+          if (value === 1) {
+            onPressMenu();
+          }
+        }}
+      >
+        <MenuTrigger>
+          <Ionicons name="ellipsis-vertical-sharp" size={24} color="black" />
+        </MenuTrigger>
+        <MenuOptions>
+          <MenuOption value={1} text="Save" disabled={disabledDownload} />
+          <MenuOption value={2}>
+            <Text style={{ color: 'red' }}>Close</Text>
+          </MenuOption>
+        </MenuOptions>
+      </Menu>
     </View>
   );
 };

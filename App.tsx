@@ -1,4 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
+import { MenuProvider } from 'react-native-popup-menu';
+
 import { DownloadingContextProvider } from './contexts/DownloadingContext';
 
 import RootStack from './screens';
@@ -7,7 +9,9 @@ const App = () => {
   return (
     <DownloadingContextProvider>
       <NavigationContainer>
-        <RootStack />
+        <MenuProvider>
+          <RootStack />
+        </MenuProvider>
       </NavigationContainer>
     </DownloadingContextProvider>
   );

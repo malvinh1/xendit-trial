@@ -21,9 +21,9 @@ import {
   useDownloadingContextDispatch,
 } from '../../contexts/DownloadingContext';
 import { ensureDirExists, saveFile } from '../../helpers/resumableDownload';
-
 import useFirstRender from '../../helpers/useFirstRender';
 import { NavigationProp } from '../../types/navigation';
+
 import styles from './styles';
 
 const Download = ({ navigation }: NavigationProp<'Download'>) => {
@@ -220,6 +220,7 @@ const Download = ({ navigation }: NavigationProp<'Download'>) => {
         console.error(e);
       }
     }
+    setDownloading(data);
   };
 
   const renderItem = ({
@@ -241,8 +242,21 @@ const Download = ({ navigation }: NavigationProp<'Download'>) => {
           <Card
             imageSrc={item.url}
             description={item.description}
-            progress={downloading[index].downloadProgress}
+            progress={item.downloadProgress}
             status={status}
+            disabledDownload={item.downloadProgress !== 1 ? true : false}
+            onPressMenu={async () => {
+              const arr = saveResult.filter(
+                (value) =>
+                  value.substring(value.lastIndexOf('/') + 1) ===
+                  item.id + '.jpg'
+              );
+
+              if (arr.length > 0) {
+                await saveFile(arr[0]);
+                Alert.alert('Success!');
+              }
+            }}
           />
         </TouchableOpacity>
       </ScaleDecorator>

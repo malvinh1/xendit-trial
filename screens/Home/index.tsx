@@ -6,12 +6,12 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
+
 import {
   Contents,
   useDownloadingContext,
   useDownloadingContextDispatch,
 } from '../../contexts/DownloadingContext';
-
 import { NavigationProp } from '../../types/navigation';
 
 import styles from './styles';
