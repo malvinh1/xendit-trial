@@ -4,7 +4,7 @@ import { DownloadingContextProvider } from './contexts/DownloadingContext';
 
 import RootStack from './screens';
 
-export default function App() {
+const App = () => {
   return (
     <DownloadingContextProvider>
       <DownloadedContextProvider>
@@ -14,4 +14,6 @@ export default function App() {
       </DownloadedContextProvider>
     </DownloadingContextProvider>
   );
-}
+};
+
+export default App;

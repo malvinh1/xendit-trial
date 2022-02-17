@@ -182,7 +182,7 @@ const Download = () => {
           <DraggableFlatList
             containerStyle={styles.flex}
             data={downloading}
-            onDragEnd={({ data }) => {
+            onDragEnd={({ data, from, to }) => {
               data.map((item, index) => {
                 const shouldPause =
                   item.id !== downloading[index].id &&
