@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
+import * as FileSystem from 'expo-file-system';
 
 export type Content = {
   id: string;
@@ -6,6 +7,7 @@ export type Content = {
   description: string;
   downloadUrl: string;
   downloadProgress: number;
+  downloadResumable?: FileSystem.DownloadResumable;
 };
 
 export type Contents = Array<Content>;

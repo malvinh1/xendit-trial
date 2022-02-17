@@ -18,6 +18,11 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  saveAllButton: {
+    backgroundColor: '#7cb342',
+    padding: 10,
+    borderRadius: 10,
+  },
 });
 
 export default styles;

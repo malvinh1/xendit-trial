@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
+import { SafeAreaView, TouchableOpacity, Text, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import DraggableFlatList, {
   RenderItemParams,
@@ -17,46 +16,47 @@ import Card from './components/Card';
 
 import {
   Content,
+  Contents,
   useDownloadingContext,
   useDownloadingContextDispatch,
 } from '../../contexts/DownloadingContext';
 import { ensureDirExists, saveFile } from '../../helpers/resumableDownload';
 
-import styles from './styles';
-import {
-  useDownloadedContext,
-  useDownloadedContextDispatch,
-} from '../../contexts/DownloadedContext';
 import useFirstRender from '../../helpers/useFirstRender';
+import { NavigationProp } from '../../types/navigation';
+import styles from './styles';
 
-const Download = () => {
+const Download = ({ navigation }: NavigationProp<'Download'>) => {
   const { downloading } = useDownloadingContext();
   const { setDownloading } = useDownloadingContextDispatch();
-  const { downloaded } = useDownloadedContext();
-  const { setDownloaded } = useDownloadedContextDispatch();
   const firstRender = useFirstRender();
 
-  const [queueLength, setQueueLength] = useState(downloading.length - 6);
-  const [shouldPause, setShouldpause] = useState(false);
+  const [lastIndex, setLastIndex] = useState(
+    downloading.length - 1 > 5 ? 5 : downloading.length - 1
+  );
+  const [currentCapacity, setCurrentCapacity] = useState(
+    downloading.length > 6 ? 6 : downloading.length
+  );
+
+  const [saveResult, setSaveResult] = useState<Array<string>>([]);
 
   const downloadProgressCallback = useCallback(
     (value: FileSystem.DownloadProgressData, index: number) => {
       const currentProgress =
         value.totalBytesWritten / value.totalBytesExpectedToWrite;
 
-      if (currentProgress === 1) {
-        setDownloaded((prev) => [
-          ...prev,
-          {
-            ...downloading[index],
-            downloadProgress: 1,
-          },
-        ]);
-        setDownloading((prev) =>
-          prev.filter((item) => item.id !== downloading[index].id)
-        );
-        setQueueLength(queueLength - 1);
-      } else if (currentProgress % 0.25 === 0) {
+      if (currentProgress % 0.25 === 0) {
+        setDownloading((prev) => {
+          prev[index] = {
+            ...prev[index],
+            downloadProgress: currentProgress,
+          };
+          return [...prev];
+        });
+      }
+
+      if (currentProgress === 1 && lastIndex < downloading.length - 1) {
+        setCurrentCapacity((prev) => prev - 1);
         setDownloading((prev) => {
           prev[index] = {
             ...prev[index],
@@ -66,8 +66,26 @@ const Download = () => {
         });
       }
     },
-    [setDownloading, setDownloaded]
+    [setDownloading]
   );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          style={styles.saveAllButton}
+          onPress={async () => {
+            const endResult = [...new Set(saveResult)];
+            const promise = endResult.map((value) => saveFile(value));
+            await Promise.all(promise);
+            Alert.alert('Success!');
+          }}
+        >
+          <Text>Save All</Text>
+        </TouchableOpacity>
+      ),
+    });
+  });
 
   useEffect(() => {
     downloading.map(async (item, index) => {
@@ -80,32 +98,26 @@ const Download = () => {
 
       {
         if (index <= 5 && item.downloadProgress === 0) {
+          setDownloading((prev) => {
+            prev[index] = {
+              ...prev[index],
+              downloadProgress: 0.0000000001,
+              downloadResumable,
+            };
+            return [...prev];
+          });
+
           try {
             ensureDirExists();
             const result = await downloadResumable.downloadAsync();
             if (result) {
               console.log('Finished downloading to ', result.uri);
-              saveFile(result.uri);
+              if (!saveResult.includes(result.uri)) {
+                setSaveResult((prev) => [...prev, result.uri]);
+              }
             }
           } catch (e) {
             console.error(e);
-          }
-
-          if (shouldPause && index === 5) {
-            try {
-              console.log('paused');
-              await downloadResumable.pauseAsync();
-              setShouldpause(false);
-              console.log(
-                'Paused download operation, saving for future retrieval'
-              );
-              AsyncStorage.setItem(
-                'pausedDownload',
-                JSON.stringify(downloadResumable.savable())
-              );
-            } catch (e) {
-              console.error(e);
-            }
           }
         }
       }
@@ -113,29 +125,102 @@ const Download = () => {
   }, []);
 
   useEffect(() => {
-    if (queueLength > 0 && !firstRender) {
-      downloading.map(async (item, index) => {
-        if (item.downloadProgress === 0) {
-          const downloadResumable = FileSystem.createDownloadResumable(
-            item.downloadUrl,
-            FileSystem.documentDirectory + item.id + '.jpg',
-            {},
-            (value) => downloadProgressCallback(value, index)
-          );
-          try {
-            ensureDirExists();
-            const result = await downloadResumable.downloadAsync();
-            if (result) {
-              console.log('Finished downloading to ', result.uri);
-              saveFile(result.uri);
+    if (
+      !firstRender &&
+      currentCapacity < 6 &&
+      lastIndex < downloading.length - 1
+    ) {
+      const newIndex = lastIndex + 1;
+
+      const tempArr = new Array(6 - currentCapacity).fill(0);
+
+      tempArr.map(async () => {
+        setDownloading((prev) => {
+          prev[newIndex] = {
+            ...prev[newIndex],
+            downloadProgress: 0.0000000001,
+            downloadResumable,
+          };
+          return [...prev];
+        });
+
+        const downloadResumable = FileSystem.createDownloadResumable(
+          downloading[newIndex].downloadUrl,
+          FileSystem.documentDirectory + downloading[newIndex].id + '.jpg',
+          {},
+          (value) => downloadProgressCallback(value, newIndex)
+        );
+        setLastIndex(newIndex);
+
+        try {
+          ensureDirExists();
+          const result = await downloadResumable.downloadAsync();
+          if (result) {
+            console.log('Finished downloading to ', result.uri);
+            if (!saveResult.includes(result.uri)) {
+              setSaveResult((prev) => [...prev, result.uri]);
             }
-          } catch (e) {
-            console.error(e);
           }
+        } catch (e) {
+          console.error(e);
         }
       });
     }
-  }, [queueLength]);
+  }, [currentCapacity]);
+
+  const onDragEnd = async ({
+    data,
+    from,
+    to,
+  }: {
+    data: Contents;
+    from: number;
+    to: number;
+  }) => {
+    if (
+      from > lastIndex &&
+      to < lastIndex &&
+      downloading[from].downloadProgress === 0
+    ) {
+      // pause downloading
+      downloading[from].downloadResumable?.pauseAsync();
+      console.log('Paused download operation, saving for future retrieval');
+      AsyncStorage.setItem(
+        'pausedDownload',
+        JSON.stringify(downloading[from].downloadResumable?.savable())
+      );
+
+      // start new downloading progress
+      const downloadResumable = FileSystem.createDownloadResumable(
+        data[to].downloadUrl,
+        FileSystem.documentDirectory + data[to].id + '.jpg',
+        {},
+        (value) => downloadProgressCallback(value, to)
+      );
+
+      data[to] = {
+        ...data[to],
+        downloadProgress: 0.0000000001,
+        downloadResumable,
+      };
+
+      setDownloading(data);
+
+      try {
+        ensureDirExists();
+        const result = await downloadResumable.downloadAsync();
+        if (result) {
+          console.log('Finished downloading to ', result.uri);
+
+          if (!saveResult.includes(result.uri)) {
+            setSaveResult((prev) => [...prev, result.uri]);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
 
   const renderItem = ({
     item,
@@ -143,6 +228,13 @@ const Download = () => {
     isActive,
     index = Number.MAX_SAFE_INTEGER,
   }: RenderItemParams<Content>) => {
+    const status =
+      item.downloadProgress === 1
+        ? 'Downloaded'
+        : item.downloadProgress === 0
+        ? 'Pending'
+        : 'Downloading';
+
     return (
       <ScaleDecorator>
         <TouchableOpacity onLongPress={drag} disabled={isActive}>
@@ -150,7 +242,7 @@ const Download = () => {
             imageSrc={item.url}
             description={item.description}
             progress={downloading[index].downloadProgress}
-            status={index > 5 ? 'Pending' : 'Downloading'}
+            status={status}
           />
         </TouchableOpacity>
       </ScaleDecorator>
@@ -159,46 +251,13 @@ const Download = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {downloaded.length > 0 && (
-        <View style={styles.downloadContainer}>
-          <Text style={styles.heading}>Downloaded</Text>
-          <ScrollView>
-            {downloaded.map((item, index) => (
-              <Card
-                key={index}
-                imageSrc={item.url}
-                description={item.description}
-                progress={downloaded[index].downloadProgress}
-                status="Downloaded"
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {downloading.length > 0 && (
-        <View style={styles.downloadContainer}>
-          <Text style={styles.heading}>Downloading</Text>
-          <DraggableFlatList
-            containerStyle={styles.flex}
-            data={downloading}
-            onDragEnd={({ data, from, to }) => {
-              data.map((item, index) => {
-                const shouldPause =
-                  item.id !== downloading[index].id &&
-                  downloading.indexOf(item) > 5;
-                if (shouldPause) {
-                  console.log('called here');
-                  setShouldpause(true);
-                }
-                setDownloading(data);
-              });
-            }}
-            keyExtractor={(item) => item.id || Math.random().toString()}
-            renderItem={renderItem}
-          />
-        </View>
-      )}
+      <DraggableFlatList
+        containerStyle={styles.flex}
+        data={downloading}
+        onDragEnd={onDragEnd}
+        keyExtractor={(item) => item.id || Math.random().toString()}
+        renderItem={renderItem}
+      />
     </SafeAreaView>
   );
 };
